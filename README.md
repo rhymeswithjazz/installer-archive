@@ -1,84 +1,36 @@
-# Installer Archive
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-A scraper and searchable archive for [The Verge's Installer Newsletter](https://www.theverge.com/installer-newsletter) by David Pierce.
+## Getting Started
 
-## Quick Start
+First, run the development server:
 
 ```bash
-# Install dependencies
-npm install
-
-# Install Playwright browsers
-npx playwright install chromium
-
-# Step 1: Scrape the archive index to get all newsletter URLs
-npm run scrape
-
-# Step 2: Parse each newsletter to extract recommendations
-npm run parse
-
-# Step 3: Export to JSON for frontend
-node src/export.js
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-## Project Structure
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-```
-installer-archive/
-├── src/
-│   ├── config.js      # Configuration settings
-│   ├── db.js          # SQLite database operations
-│   ├── scraper.js     # Archive page scraper (collects issue URLs)
-│   ├── parser.js      # Newsletter parser (extracts recommendations)
-│   └── export.js      # Export to JSON
-├── data/
-│   └── installer.db   # SQLite database
-├── raw-html/          # Backup of scraped HTML
-└── package.json
-```
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## How It Works
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-### 1. Archive Scraper (`npm run scrape`)
-- Navigates to the Installer Newsletter archive page
-- Finds all newsletter issue links across pagination
-- Stores issue URLs and dates in SQLite
+## Learn More
 
-### 2. Parser (`npm run parse`)
-- Visits each unscraped newsletter issue
-- Extracts recommendations using:
-  - The distinctive "(link)" pattern for primary recommendations
-  - All other links with surrounding context
-- Categorizes recommendations (apps, games, shows, etc.)
-- Identifies crowdsourced/reader submissions
-- Saves raw HTML as backup
+To learn more about Next.js, take a look at the following resources:
 
-### 3. Export (`node src/export.js`)
-- Exports database to JSON for frontend use
-- Creates category-specific JSON files
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-## Data Model
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-**Issues** (newsletter editions)
-- title, url, date, issue_number
+## Deploy on Vercel
 
-**Recommendations**
-- title, url, description
-- category (apps, games, shows, movies, podcasts, etc.)
-- is_primary_link (the "(link)" format)
-- is_crowdsourced (reader submissions)
-- section_name
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-## Configuration
-
-Edit `src/config.js` to adjust:
-- `delayBetweenRequests` - Be respectful of The Verge's servers
-- `headless` - Set to false to watch the browser
-- File paths
-
-## Next Steps
-
-After scraping, you can:
-1. Build a frontend using the exported JSON
-2. Use the SQLite database directly for queries
-3. Set up scheduled runs to capture new issues
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

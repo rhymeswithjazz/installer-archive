@@ -1,0 +1,67 @@
+// Prisma schema for Installer Archive
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Admin users
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // bcrypt hashed
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Newsletter issues
+model Issue {
+  id              Int              @id @default(autoincrement())
+  title           String
+  url             String           @unique
+  date            DateTime?
+  issueNumber     Int?
+  scrapedAt       DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  recommendations Recommendation[]
+}
+
+// Recommendations (links from newsletters)
+model Recommendation {
+  id              Int      @id @default(autoincrement())
+  title           String
+  url             String?
+  description     String?
+  category        String   @default("articles")
+  sectionName     String?  // intro, screen_share, crowdsourced, signing_off, etc.
+  isPrimaryLink   Boolean  @default(false)
+  isCrowdsourced  Boolean  @default(false)
+  contributorName String?
+  hidden          Boolean  @default(false)
+  dead            Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  issue   Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  issueId Int
+  tags    Tag[]
+
+  @@index([category])
+  @@index([issueId])
+  @@index([hidden])
+}
+
+// Tags for recommendations
+model Tag {
+  id              Int              @id @default(autoincrement())
+  name            String           @unique
+  createdAt       DateTime         @default(now())
+  recommendations Recommendation[]
+}
