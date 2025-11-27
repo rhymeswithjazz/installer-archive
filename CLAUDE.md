@@ -8,88 +8,94 @@ This project scrapes, parses, and archives all recommendations from The Verge's 
 
 ## Tech Stack
 
-- **Runtime**: Node.js (ES Modules)
+- **Framework**: Next.js 16 (App Router)
+- **Database**: SQLite via Prisma ORM
+- **Auth**: NextAuth v5 (credentials provider)
+- **Styling**: Tailwind CSS v4 + shadcn/ui
 - **Scraping**: Playwright (browser automation)
-- **HTML Parsing**: Cheerio
-- **Database**: sql.js (SQLite compiled to WebAssembly)
-- **Frontend**: Vanilla JavaScript, CSS
-- **Search**: Fuse.js (client-side fuzzy search)
-- **Server**: Express.js (admin API)
+- **Deployment**: Docker
 
 ## Architecture
 
 ```
 installer-archive/
 ├── src/
-│   ├── config.js      # Configuration constants
-│   ├── db.js          # SQLite database operations
-│   ├── scraper.js     # Archive page scraper (finds newsletter URLs)
-│   ├── parser.js      # Newsletter content parser (extracts recommendations)
-│   ├── export.js      # Exports database to JSON
-│   └── server.js      # Express server for admin API
-├── public/
-│   ├── index.html     # Main search interface
-│   ├── admin.html     # Admin panel (single file with CSS/JS)
-│   ├── app.js         # Main app JavaScript
-│   ├── style.css      # Main app styles
-│   └── data/
-│       └── installer-archive.json  # Exported data for frontend
+│   ├── app/
+│   │   ├── page.tsx              # Public homepage (search/filter)
+│   │   ├── login/page.tsx        # Login page
+│   │   ├── admin/page.tsx        # Admin dashboard
+│   │   └── api/
+│   │       ├── auth/[...nextauth]/route.ts
+│   │       └── scrape/route.ts   # Scrape trigger API
+│   ├── components/
+│   │   ├── ui/                   # shadcn/ui components
+│   │   ├── admin/                # Admin-specific components
+│   │   ├── search-form.tsx       # Public search filters
+│   │   └── recommendation-card.tsx
+│   ├── lib/
+│   │   ├── auth.ts               # NextAuth configuration
+│   │   ├── prisma.ts             # Prisma client singleton
+│   │   ├── actions/
+│   │   │   ├── recommendations.ts # Public data queries
+│   │   │   └── admin.ts          # Admin CRUD operations
+│   │   └── scraper/
+│   │       ├── config.ts         # Scraper configuration
+│   │       ├── parser.ts         # Newsletter content parser
+│   │       └── scraper.ts        # Main scraper logic
+│   └── types/index.ts            # Type definitions
+├── prisma/
+│   └── schema.prisma             # Database schema
+├── scripts/
+│   └── seed.ts                   # Database seeding script
 ├── data/
-│   ├── installer.db   # SQLite database
-│   └── *.json         # Exported JSON files
-├── raw-html/          # Cached HTML from scraped pages
-└── package.json
+│   └── installer.db              # SQLite database
+├── Dockerfile
+├── docker-compose.yml
+└── docker-entrypoint.sh
 ```
 
-## Data Flow
+## Database Schema (Prisma)
 
-1. **Scrape** (`npm run scrape`): Crawls The Verge's Installer Newsletter archive pages, extracts newsletter URLs, and stores them in the database.
+```prisma
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // bcrypt hashed
+  name      String?
+}
 
-2. **Parse** (`npm run parse`): Visits each newsletter URL, extracts recommendation links from the article content, categorizes them, and stores in the database.
+model Issue {
+  id              Int              @id @default(autoincrement())
+  title           String
+  url             String           @unique
+  date            DateTime?
+  scrapedAt       DateTime?
+  recommendations Recommendation[]
+}
 
-3. **Export** (`npm run export`): Exports the SQLite database to JSON files for the frontend.
+model Recommendation {
+  id              Int      @id @default(autoincrement())
+  title           String
+  url             String?
+  description     String?
+  category        String   @default("articles")
+  sectionName     String?
+  isPrimaryLink   Boolean  @default(false)
+  isCrowdsourced  Boolean  @default(false)
+  contributorName String?
+  hidden          Boolean  @default(false)
+  dead            Boolean  @default(false)
+  issue           Issue    @relation(...)
+  issueId         Int
+  tags            Tag[]
+}
 
-4. **Build** (`npm run build`): Copies the JSON data to the public folder.
-
-5. **Serve** (`npm run admin`): Runs the Express server with admin API and serves the public files.
-
-## Database Schema
-
-### Issues Table
-```sql
-CREATE TABLE issues (
-  id INTEGER PRIMARY KEY,
-  title TEXT,
-  url TEXT UNIQUE,
-  date TEXT,
-  scraped_at TEXT,
-  html_path TEXT
-)
+model Tag {
+  id              Int              @id @default(autoincrement())
+  name            String           @unique
+  recommendations Recommendation[]
+}
 ```
-
-### Recommendations Table
-```sql
-CREATE TABLE recommendations (
-  id INTEGER PRIMARY KEY,
-  issue_id INTEGER,
-  title TEXT,
-  url TEXT,
-  description TEXT,
-  category TEXT,
-  is_primary_link INTEGER,
-  is_crowdsourced INTEGER,
-  contributor_name TEXT,
-  section_name TEXT,
-  FOREIGN KEY (issue_id) REFERENCES issues(id)
-)
-```
-
-### JSON Export Fields (extended via admin)
-- `id`, `issueId`, `title`, `url`, `description`, `category`
-- `issueTitle`, `issueDate`, `issueUrl` (denormalized)
-- `tags` (array of strings, added via admin)
-- `hidden` (boolean, hide from public view)
-- `dead` (boolean, marks broken links)
 
 ## Categories
 
@@ -104,19 +110,50 @@ Recommendations are auto-categorized based on URL patterns and content:
 - `podcasts` - Podcast shows
 - `articles` - News, blog posts (default)
 - `gadgets` - Hardware, devices
+- `food-drink` - Recipes, restaurants, beverages
 
 ## Commands
 
 ```bash
-npm run scrape   # Scrape newsletter archive for issue URLs
-npm run parse    # Parse each issue for recommendations
-npm run export   # Export database to JSON
-npm run build    # Copy JSON to public folder
-npm run serve    # Static file server (port 3000)
-npm run admin    # Admin server with API (port 3000)
+npm run dev      # Start development server
+npm run build    # Build for production
+npm run start    # Start production server
+
+# Database
+npx prisma migrate dev    # Run migrations in development
+npx prisma migrate deploy # Run migrations in production
+npx prisma studio         # Open Prisma Studio GUI
+npx tsx scripts/seed.ts   # Seed database with initial data
 ```
 
+## Environment Variables
+
+```bash
+# Database
+DATABASE_URL="file:./data/installer.db"
+
+# NextAuth
+AUTH_SECRET="generate-with-openssl-rand-base64-32"
+AUTH_URL="http://localhost:3000"
+
+# Admin (for Docker deployment)
+ADMIN_EMAIL="admin@example.com"
+ADMIN_PASSWORD="your-secure-password"
+```
+
+## Public Site Features
+
+- Search across titles, descriptions, URLs
+- Filter by category, issue, tag
+- Results show category badge, title (linked), description, tags, source issue
+- Hidden and dead items automatically filtered out
+- Responsive design, dark theme
+
 ## Admin Panel Features
+
+### Authentication
+- Email/password login via NextAuth
+- Protected by middleware (`/admin/*` routes)
 
 ### Viewing & Filtering
 - Table view of all recommendations
@@ -126,109 +163,108 @@ npm run admin    # Admin server with API (port 3000)
 - "Dead only" filter to review broken links
 
 ### Editing
-- **Title**: Double-click or click "edit" button
-  - Debounced auto-save (500ms after typing stops)
-  - "saving..." / "saved" indicator
-  - Enter to save and close, Escape to cancel
-- **URL**: Double-click or click "edit" button
-  - Enter to save, Escape to cancel
+- **Title**: Double-click to edit inline
+- **URL**: Double-click to edit inline
 - **Category**: Dropdown selector (saves immediately)
+- **Tags**: Add/remove with autocomplete
 
-### Tags
-- Add tags with autocomplete from existing tags
-- Type to filter suggestions
-- Arrow keys to navigate, Tab/Enter to select
-- Click suggestion or type new tag name
-- Click × to remove tags
-- Tags appear in filter dropdown
-
-### Status
-- **Hide/Restore**: Hide items from public view
+### Status Actions
+- **Hide/Show**: Toggle visibility on public site
 - **Dead/Alive**: Mark broken links
-  - Dead links show strikethrough + "DEAD" badge
-  - Filtered out of public view automatically
 
 ### Bulk Actions
-- Checkbox to select multiple items
+- Select multiple items with checkboxes
 - Bulk set category
-- Bulk hide
+- Bulk hide/show
 
-## Public Site Features
+### Scraper Panel
+- **Scrape Archive**: Find new newsletter URLs
+- **Scrape Issues**: Parse unscraped newsletters
+- **Full Scrape**: Run both operations
 
-- Fuzzy search across titles, descriptions, tags
-- Filter by category, issue, tag
-- Results show category badge, title (linked), description, tags, source issue
-- Hidden and dead items automatically filtered out
-- Responsive design, dark theme
+## API Endpoints
 
-## Admin API Endpoints
+### Public (Server Actions)
+- `getRecommendations(params)` - List visible recommendations
+- `getIssues()` - List all issues
+- `getTags()` - List all tags with counts
+- `getStats()` - Get counts and category breakdown
 
+### Admin (Server Actions)
+- `updateRecommendation(id, data)` - Update fields
+- `addTagToRecommendation(id, tagName)` - Add tag
+- `removeTagFromRecommendation(id, tagId)` - Remove tag
+- `bulkUpdateCategory(ids, category)` - Bulk update
+- `bulkHide(ids, hidden)` - Bulk hide/show
+
+### Scrape API
 ```
-GET  /api/recommendations      # List all (with ?category, ?issueId, ?search filters)
-GET  /api/issues               # List all issues
-GET  /api/stats                # Get counts and category breakdown
-PATCH /api/recommendations/:id # Update fields (category, title, url, tags, hidden, dead)
-POST /api/recommendations/bulk-update  # Bulk update category
-DELETE /api/recommendations/:id # Hide a recommendation
+POST /api/scrape
+Body: { action: "archive" | "issues" | "all", limit?: number }
 ```
 
 ## Scraping Details
 
-### Archive Scraper (`scraper.js`)
-- Starts at `/installer-newsletter/archives`
-- Paginates through archive pages
-- Filters URLs matching newsletter patterns:
-  - `/installer-newsletter/[id]/[slug]`
-  - `/YYYY/MM/DD/[id]/[slug]`
-- Skips navigation, comment links, author pages
+### How It Works
+1. **Archive Scraper**: Crawls `/installer-newsletter/archives` pages to find newsletter URLs
+2. **Issue Parser**: Visits each newsletter, extracts `__NEXT_DATA__` JSON to bypass paywall, parses recommendations
 
-### Content Parser (`parser.js`)
-- Loads each newsletter page with Playwright
-- Extracts links from `[class*="dangerously-set-cms-markup"]` elements
-- Filters out:
-  - Verge internal pages (ethics, privacy, terms, etc.)
-  - Social media share links
-  - Navigation/footer links
-  - Short or junk titles
+### Parser Features
+- Extracts from `__NEXT_DATA__` JSON (bypasses The Verge's paywall)
+- Tracks section names (intro, screen_share, crowdsourced, signing_off)
+- Captures contributor names from crowdsourced sections
 - Auto-categorizes based on URL domain and content keywords
-- Saves raw HTML to `raw-html/` for debugging
+- Filters out navigation, social, and junk links
 
-## Configuration (`src/config.js`)
+## Docker Deployment
 
-```javascript
-export const config = {
-  archiveUrl: 'https://www.theverge.com/installer-newsletter',
-  baseUrl: 'https://www.theverge.com',
-  delayBetweenRequests: 2000,  // Be respectful
-  maxRetries: 3,
-  timeout: 30000,
-  dbPath: './data/installer.db',
-  rawHtmlDir: './raw-html',
-  headless: true,
-  userAgent: '...'
-};
+### Build and Run
+```bash
+# Copy environment template
+cp .env.example .env
+# Edit .env with your values
+
+# Build and start
+docker-compose up -d
 ```
+
+### Docker Compose
+```yaml
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:/app/data/installer.db
+      - AUTH_SECRET=${AUTH_SECRET}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+    volumes:
+      - installer-data:/app/data
+```
+
+### Entrypoint
+The Docker entrypoint automatically:
+1. Runs Prisma migrations
+2. Creates admin user if ADMIN_EMAIL and ADMIN_PASSWORD are set
+3. Starts the Next.js server
 
 ## Development Notes
 
+### Adding New Categories
+1. Add to `CATEGORIES` array in `src/types/index.ts`
+2. Add URL/content patterns in `guessCategory()` in `src/lib/scraper/parser.ts`
+3. Add color mapping in `categoryColors` in `src/components/recommendation-card.tsx` and `src/components/admin/admin-table.tsx`
+
 ### Re-scraping
-To reset and re-scrape everything:
-```bash
-rm -f data/installer.db
-npm run scrape
-npm run parse
-npm run export
-npm run build
-```
+To trigger a re-scrape, either:
+- Use the Scrape Panel in the admin interface
+- Call the API: `POST /api/scrape { "action": "all" }`
+- Reset and re-seed the database
 
 ### Database Location
-The SQLite database is at `data/installer.db`. The admin panel modifies `data/installer-archive.json` directly and also updates `public/data/installer-archive.json`.
-
-### Adding New Categories
-1. Add to `categories` array in `src/config.js`
-2. Add URL/content patterns in `guessCategory()` in `src/parser.js`
-3. Add option to dropdowns in `public/index.html` and `public/admin.html`
-4. Add CSS color variable in `public/style.css`
+SQLite database is at `data/installer.db`. All changes persist directly to the database (no JSON export needed).
 
 ## Credits
 
