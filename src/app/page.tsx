@@ -52,21 +52,21 @@ export default async function HomePage({ searchParams }: PageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       {/* Header */}
-      <header className="border-b border-border/50 py-8 backdrop-blur-sm bg-background/80 relative">
-        <div className="absolute top-4 right-4">
+      <header className="border-b border-border/50 py-6 md:py-8 backdrop-blur-sm bg-background/80 relative">
+        <div className="absolute top-3 right-3 md:top-4 md:right-4">
           <ThemeToggle />
         </div>
         <div className="container mx-auto px-4">
-          <div className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-3">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/20">
-                <Archive className="h-8 w-8 text-primary" />
+          <div className="text-center space-y-2 md:space-y-4">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3">
+              <div className="p-2.5 md:p-3 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/20">
+                <Archive className="h-6 w-6 md:h-8 md:w-8 text-primary" />
               </div>
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <h1 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-primary via-purple-400 to-pink-400 bg-clip-text text-transparent">
                 Installer Archive
               </h1>
             </div>
-            <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+            <p className="text-sm md:text-lg text-muted-foreground max-w-xl mx-auto px-2">
               Search recommendations from{" "}
               <a
                 href="https://www.theverge.com/installer-newsletter"
@@ -92,17 +92,17 @@ export default async function HomePage({ searchParams }: PageProps) {
         />
 
         {/* Stats */}
-        <div className="flex flex-wrap gap-6 justify-center items-center mb-8">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-card/50 border border-border/50 backdrop-blur-sm">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-sm">
+        <div className="flex flex-wrap gap-3 md:gap-6 justify-center items-center mb-6 md:mb-8">
+          <div className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-card/50 border border-border/50 backdrop-blur-sm">
+            <Sparkles className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
+            <span className="text-xs md:text-sm">
               <strong className="text-foreground font-semibold">{stats.visibleRecommendations.toLocaleString()}</strong>
               <span className="text-muted-foreground"> recommendations</span>
             </span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-card/50 border border-border/50 backdrop-blur-sm">
-            <Newspaper className="h-4 w-4 text-purple-400" />
-            <span className="text-sm">
+          <div className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-card/50 border border-border/50 backdrop-blur-sm">
+            <Newspaper className="h-3.5 w-3.5 md:h-4 md:w-4 text-purple-400" />
+            <span className="text-xs md:text-sm">
               <strong className="text-foreground font-semibold">{stats.totalIssues.toLocaleString()}</strong>
               <span className="text-muted-foreground"> issues</span>
             </span>

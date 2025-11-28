@@ -94,9 +94,16 @@ export function SearchForm({
   )].sort((a, b) => b.localeCompare(a));
 
   return (
-    <div className="relative flex flex-wrap gap-3 items-center justify-center mb-6 p-4 rounded-2xl bg-card/30 border border-border/50 backdrop-blur-sm">
-      {/* Search Input */}
-      <div className="relative group">
+    <div className="relative mb-6 p-3 md:p-4 rounded-xl md:rounded-2xl bg-card/30 border border-border/50 backdrop-blur-sm">
+      {/* Loading indicator - absolutely positioned */}
+      {isPending && (
+        <div className="absolute top-2 right-2">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+        </div>
+      )}
+
+      {/* Search Input - Full width on mobile */}
+      <div className="relative group mb-3">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
         <Input
           type="search"
@@ -111,110 +118,107 @@ export function SearchForm({
               updateParams("q", value);
             }, 400);
           }}
-          className="w-64 pl-9 bg-background/50 border-border/50 focus:border-primary/50 transition-colors"
+          className="w-full pl-9 bg-background/50 border-border/50 focus:border-primary/50 transition-colors"
         />
       </div>
 
-      {/* Category Filter */}
-      <Select
-        value={initialValues.category || "all"}
-        onValueChange={(value) =>
-          updateParams("category", value === "all" ? "" : value)
-        }
-      >
-        <SelectTrigger className="w-36">
-          <SelectValue placeholder="Category" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Categories</SelectItem>
-          {categories.map((cat) => (
-            <SelectItem key={cat} value={cat}>
-              {cat.charAt(0).toUpperCase() + cat.slice(1).replace("-", " & ")}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* Tag Filter */}
-      {tags.length > 0 && (
+      {/* Filters Grid - 2 columns on mobile, flex on larger screens */}
+      <div className="grid grid-cols-2 md:flex md:flex-wrap md:justify-center gap-2 md:gap-3">
+        {/* Category Filter */}
         <Select
-          value={initialValues.tag || "all"}
+          value={initialValues.category || "all"}
           onValueChange={(value) =>
-            updateParams("tag", value === "all" ? "" : value)
+            updateParams("category", value === "all" ? "" : value)
           }
         >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Tag" />
+          <SelectTrigger className="w-full md:w-36">
+            <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Tags</SelectItem>
-            {tags.map((tag) => (
-              <SelectItem key={tag.id} value={tag.name}>
-                {tag.name} ({tag._count.recommendations})
+            <SelectItem value="all">All Categories</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat} value={cat}>
+                {cat.charAt(0).toUpperCase() + cat.slice(1).replace("-", " & ")}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-      )}
 
-      {/* Issue Filter */}
-      <Select
-        value={initialValues.issueId?.toString() || "all"}
-        onValueChange={(value) =>
-          updateParams("issue", value === "all" ? "" : value)
-        }
-      >
-        <SelectTrigger className="w-44">
-          <SelectValue placeholder="Issue" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Issues</SelectItem>
-          {issues.map((issue) => (
-            <SelectItem key={issue.id} value={issue.id.toString()}>
-              {issue.title.length > 25
-                ? issue.title.substring(0, 25) + "..."
-                : issue.title}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        {/* Tag Filter */}
+        {tags.length > 0 && (
+          <Select
+            value={initialValues.tag || "all"}
+            onValueChange={(value) =>
+              updateParams("tag", value === "all" ? "" : value)
+            }
+          >
+            <SelectTrigger className="w-full md:w-36">
+              <SelectValue placeholder="Tag" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Tags</SelectItem>
+              {tags.map((tag) => (
+                <SelectItem key={tag.id} value={tag.name}>
+                  {tag.name} ({tag._count.recommendations})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
-      {/* Date Filter */}
-      <Select
-        value={initialValues.date || "all"}
-        onValueChange={(value) =>
-          updateParams("date", value === "all" ? "" : value)
-        }
-      >
-        <SelectTrigger className="w-36">
-          <SelectValue placeholder="Date" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Dates</SelectItem>
-          {uniqueDates.map((date) => (
-            <SelectItem key={date} value={date}>
-              {formatDateString(date)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        {/* Issue Filter */}
+        <Select
+          value={initialValues.issueId?.toString() || "all"}
+          onValueChange={(value) =>
+            updateParams("issue", value === "all" ? "" : value)
+          }
+        >
+          <SelectTrigger className="w-full md:w-44">
+            <SelectValue placeholder="Issue" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Issues</SelectItem>
+            {issues.map((issue) => (
+              <SelectItem key={issue.id} value={issue.id.toString()}>
+                {issue.title.length > 25
+                  ? issue.title.substring(0, 25) + "..."
+                  : issue.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      {/* Clear Filters - always rendered to prevent layout shift */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={clearFilters}
-        className={`transition-opacity ${hasFilters ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-      >
-        Clear
-      </Button>
+        {/* Date Filter */}
+        <Select
+          value={initialValues.date || "all"}
+          onValueChange={(value) =>
+            updateParams("date", value === "all" ? "" : value)
+          }
+        >
+          <SelectTrigger className="w-full md:w-36">
+            <SelectValue placeholder="Date" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Dates</SelectItem>
+            {uniqueDates.map((date) => (
+              <SelectItem key={date} value={date}>
+                {formatDateString(date)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      {/* Loading indicator - absolutely positioned to prevent any layout shift */}
-      {isPending && (
-        <div className="absolute top-2 right-2">
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-        </div>
-      )}
+      {/* Clear Filters - below filters on mobile */}
+      <div className={`flex justify-center mt-2 transition-opacity ${hasFilters ? 'opacity-100' : 'opacity-0 pointer-events-none h-0 mt-0 overflow-hidden'}`}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={clearFilters}
+        >
+          Clear filters
+        </Button>
+      </div>
     </div>
   );
 }
