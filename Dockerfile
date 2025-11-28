@@ -30,11 +30,12 @@ FROM node:20-bookworm-slim AS runner
 
 WORKDIR /app
 
-# Install production dependencies and Playwright dependencies
+# Install production dependencies, gosu, and Playwright dependencies
 RUN apt-get update && apt-get install -y \
     openssl \
     ca-certificates \
     wget \
+    gosu \
     # Playwright dependencies
     libnss3 \
     libnspr4 \
@@ -85,8 +86,7 @@ RUN npx playwright install chromium --with-deps
 # Copy entrypoint script and ensure it's executable
 COPY --chmod=755 docker-entrypoint.sh /docker-entrypoint.sh
 
-USER nextjs
-
+# Run entrypoint as root (it will drop to nextjs user after setup)
 EXPOSE 3000
 
 ENV PORT=3000
