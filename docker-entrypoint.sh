@@ -3,9 +3,20 @@ set -e
 
 echo "=== Installer Archive Startup ==="
 
+# Fix permissions on data directory (runs as root)
+echo "Fixing data directory permissions..."
+chown -R nextjs:nodejs /app/data
+chmod 755 /app/data
+if [ -f /app/data/installer.db ]; then
+  chmod 664 /app/data/installer.db
+fi
+
 # Run Prisma migrations to ensure database is set up
 echo "Running database migrations..."
 npx prisma migrate deploy
+
+# Fix permissions again after migration (in case new files were created)
+chown -R nextjs:nodejs /app/data
 
 # Check if admin user needs to be created
 if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then
@@ -35,6 +46,6 @@ if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then
   "
 fi
 
-# Start the application
+# Start the application as nextjs user
 echo "Starting Next.js server..."
-exec node server.js
+exec gosu nextjs node server.js
