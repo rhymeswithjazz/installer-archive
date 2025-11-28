@@ -10,27 +10,13 @@ export const authConfig: NextAuthConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const isAdminRoute = nextUrl.pathname.startsWith("/admin");
-      const isLoginPage = nextUrl.pathname === "/login";
-      const isVerifyPage = nextUrl.pathname === "/login/verify";
 
-      if (isAdminRoute) {
-        return isLoggedIn;
-      }
-
-      if ((isLoginPage || isVerifyPage) && isLoggedIn) {
-        return Response.redirect(new URL("/admin", nextUrl));
+      // Protect admin routes
+      if (isAdminRoute && !isLoggedIn) {
+        return false; // Redirects to signIn page
       }
 
       return true;
-    },
-    async session({ session, token, user }) {
-      if (token?.sub && session.user) {
-        session.user.id = token.sub;
-      }
-      if (user?.id && session.user) {
-        session.user.id = user.id;
-      }
-      return session;
     },
     async jwt({ token, user }) {
       if (user) {
@@ -38,6 +24,12 @@ export const authConfig: NextAuthConfig = {
       }
       return token;
     },
+    async session({ session, token }) {
+      if (token?.sub && session.user) {
+        session.user.id = token.sub;
+      }
+      return session;
+    },
   },
-  providers: [], // Providers added in auth.ts
+  providers: [],
 };
