@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +30,15 @@ export function ScrapePanel() {
     setCurrentAction(action);
     setResult(null);
 
+    const actionLabels: Record<string, string> = {
+      archive: "Archive scrape",
+      issues: "Issues scrape",
+      all: "Full scrape",
+      "backfill-dates": "Date backfill",
+      "backfill-titles": "Title extraction",
+      "single-url": "URL scrape",
+    };
+
     try {
       const response = await fetch("/api/scrape", {
         method: "POST",
@@ -39,17 +49,38 @@ export function ScrapePanel() {
       const data = await response.json();
       setResult(data);
 
-      if (action === "single-url" && data.success) {
-        setSingleUrl("");
+      if (data.success) {
+        if (action === "single-url") {
+          setSingleUrl("");
+        }
+
+        // Build success message
+        const parts: string[] = [];
+        if (data.issuesFound) parts.push(`${data.issuesFound} issues found`);
+        if (data.issuesScraped) parts.push(`${data.issuesScraped} scraped`);
+        if (data.recommendationsAdded) parts.push(`${data.recommendationsAdded} recommendations added`);
+        if (data.updated) parts.push(`${data.updated} updated`);
+
+        toast.success(`${actionLabels[action]} completed`, {
+          description: parts.length > 0 ? parts.join(", ") : undefined,
+        });
+      } else {
+        toast.error(`${actionLabels[action]} failed`, {
+          description: data.error || "Unknown error",
+        });
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       setResult({
         success: false,
         issuesFound: 0,
         issuesScraped: 0,
         recommendationsAdded: 0,
         errors: [],
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: errorMessage,
+      });
+      toast.error(`${actionLabels[action]} failed`, {
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);

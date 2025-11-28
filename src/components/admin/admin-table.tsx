@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,19 +91,37 @@ export function AdminTable({ recommendations, tags, categories }: AdminTableProp
 
   const handleCategoryChange = (id: number, category: string) => {
     startTransition(async () => {
-      await updateRecommendation(id, { category });
+      try {
+        await updateRecommendation(id, { category });
+      } catch (error) {
+        toast.error("Failed to update category", {
+          description: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
     });
   };
 
   const handleToggleHidden = (id: number, currentHidden: boolean) => {
     startTransition(async () => {
-      await updateRecommendation(id, { hidden: !currentHidden });
+      try {
+        await updateRecommendation(id, { hidden: !currentHidden });
+      } catch (error) {
+        toast.error("Failed to update visibility", {
+          description: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
     });
   };
 
   const handleToggleDead = (id: number, currentDead: boolean) => {
     startTransition(async () => {
-      await updateRecommendation(id, { dead: !currentDead });
+      try {
+        await updateRecommendation(id, { dead: !currentDead });
+      } catch (error) {
+        toast.error("Failed to update dead status", {
+          description: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
     });
   };
 
@@ -110,15 +129,27 @@ export function AdminTable({ recommendations, tags, categories }: AdminTableProp
     if (!tagValue.trim()) return;
 
     startTransition(async () => {
-      await addTagToRecommendation(id, tagValue.trim());
-      setTagInput(null);
-      setTagValue("");
+      try {
+        await addTagToRecommendation(id, tagValue.trim());
+        setTagInput(null);
+        setTagValue("");
+      } catch (error) {
+        toast.error("Failed to add tag", {
+          description: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
     });
   };
 
   const handleRemoveTag = (recommendationId: number, tagId: number) => {
     startTransition(async () => {
-      await removeTagFromRecommendation(recommendationId, tagId);
+      try {
+        await removeTagFromRecommendation(recommendationId, tagId);
+      } catch (error) {
+        toast.error("Failed to remove tag", {
+          description: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
     });
   };
 
@@ -126,8 +157,15 @@ export function AdminTable({ recommendations, tags, categories }: AdminTableProp
     if (selected.size === 0) return;
 
     startTransition(async () => {
-      await bulkUpdateCategory(Array.from(selected), category);
-      setSelected(new Set());
+      try {
+        await bulkUpdateCategory(Array.from(selected), category);
+        setSelected(new Set());
+        toast.success(`Updated ${selected.size} items to ${category}`);
+      } catch (error) {
+        toast.error("Failed to bulk update category", {
+          description: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
     });
   };
 
@@ -135,8 +173,16 @@ export function AdminTable({ recommendations, tags, categories }: AdminTableProp
     if (selected.size === 0) return;
 
     startTransition(async () => {
-      await bulkHide(Array.from(selected), hidden);
-      setSelected(new Set());
+      try {
+        await bulkHide(Array.from(selected), hidden);
+        const count = selected.size;
+        setSelected(new Set());
+        toast.success(`${hidden ? "Hidden" : "Shown"} ${count} items`);
+      } catch (error) {
+        toast.error(`Failed to ${hidden ? "hide" : "show"} items`, {
+          description: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
     });
   };
 
@@ -163,7 +209,9 @@ export function AdminTable({ recommendations, tags, categories }: AdminTableProp
         }
       }
     } catch (error) {
-      console.error("Batch enrich failed:", error);
+      toast.error("Failed to fetch titles", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
     }
 
     // Phase 2: AI categorization and tagging
@@ -194,8 +242,26 @@ export function AdminTable({ recommendations, tags, categories }: AdminTableProp
       if (selected.size > 0) {
         setSelected(new Set());
       }
+
+      // Show summary toast
+      if (newAiResults.size > 0) {
+        const totalTags = Array.from(newAiResults.values()).reduce(
+          (sum, r) => sum + r.addedTags.length,
+          0
+        );
+        toast.success(`AI processed ${newAiResults.size} items`, {
+          description: totalTags > 0 ? `Added ${totalTags} tags` : undefined,
+        });
+      }
+      if (enrichFailedIds.size > 0) {
+        toast.error(`${enrichFailedIds.size} items failed`, {
+          description: "Check the error icons for details",
+        });
+      }
     } catch (error) {
-      console.error("AI categorization failed:", error);
+      toast.error("AI categorization failed", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
       setFailedIds(enrichFailedIds);
     } finally {
       setEnrichStatus("idle");
