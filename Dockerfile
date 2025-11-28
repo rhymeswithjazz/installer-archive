@@ -7,7 +7,6 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     openssl \
     ca-certificates \
-    wget \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
@@ -35,6 +34,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     openssl \
     ca-certificates \
+    wget \
     # Playwright dependencies
     libnss3 \
     libnspr4 \
@@ -91,8 +91,5 @@ EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD node -e "fetch('http://localhost:3000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
