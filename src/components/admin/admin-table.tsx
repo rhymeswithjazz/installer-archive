@@ -32,55 +32,31 @@ import {
 import { EditRecommendationModal } from "./edit-recommendation-modal";
 import { ExternalLink, X, Eye, EyeOff, Skull, Pencil, Sparkles, AlertCircle, Loader2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR } from "@/lib/constants";
+import { formatCategoryLabel } from "@/lib/utils/format";
+import type { Tag, TagWithCount, IssueRef, AIResultData, Category } from "@/types";
 
 interface Recommendation {
   id: number;
   title: string;
   url: string | null;
   description: string | null;
-  category: string;
+  category: Category | string; // Allow string for compatibility
   sectionName: string | null;
   isCrowdsourced: boolean;
   contributorName: string | null;
   hidden: boolean;
   dead: boolean;
-  issue: {
-    id: number;
-    title: string;
-    url: string;
-    date: Date | null;
-  };
-  tags: {
-    id: number;
-    name: string;
-  }[];
+  issue: IssueRef;
+  tags: Tag[];
 }
 
 interface AdminTableProps {
   recommendations: Recommendation[];
-  tags: {
-    id: number;
-    name: string;
-    _count: { recommendations: number };
-  }[];
+  tags: TagWithCount[];
   categories: string[];
 }
 
-const categoryColors: Record<string, string> = {
-  apps: "bg-green-500/15 text-green-500",
-  shows: "bg-pink-500/15 text-pink-500",
-  movies: "bg-amber-500/15 text-amber-500",
-  games: "bg-violet-500/15 text-violet-500",
-  books: "bg-cyan-500/15 text-cyan-500",
-  videos: "bg-red-500/15 text-red-500",
-  music: "bg-teal-500/15 text-teal-500",
-  podcasts: "bg-orange-500/15 text-orange-500",
-  articles: "bg-slate-500/15 text-slate-400",
-  gadgets: "bg-lime-500/15 text-lime-500",
-  "food-drink": "bg-pink-400/15 text-pink-400",
-  blog: "bg-indigo-500/15 text-indigo-500",
-  website: "bg-sky-500/15 text-sky-500",
-};
 
 export function AdminTable({ recommendations, tags, categories }: AdminTableProps) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -90,7 +66,7 @@ export function AdminTable({ recommendations, tags, categories }: AdminTableProp
   const [editingRec, setEditingRec] = useState<Recommendation | null>(null);
   const [failedIds, setFailedIds] = useState<Map<number, string>>(new Map());
   const [enrichStatus, setEnrichStatus] = useState<"idle" | "fetching" | "categorizing">("idle");
-  const [aiResults, setAiResults] = useState<Map<number, { category: string; previous: string; confidence: string; reasoning: string; addedTags: string[] }>>(new Map());
+  const [aiResults, setAiResults] = useState<Map<number, AIResultData>>(new Map());
 
   const allSelected = recommendations.length > 0 && selected.size === recommendations.length;
 
@@ -195,7 +171,7 @@ export function AdminTable({ recommendations, tags, categories }: AdminTableProp
 
     try {
       const { results } = await aiCategorizeRecommendations(ids);
-      const newAiResults = new Map<number, { category: string; previous: string; confidence: string; reasoning: string; addedTags: string[] }>();
+      const newAiResults = new Map<number, AIResultData>();
 
       for (const result of results) {
         if (result.success && result.category) {
@@ -266,7 +242,7 @@ export function AdminTable({ recommendations, tags, categories }: AdminTableProp
             <SelectContent>
               {categories.map((cat) => (
                 <SelectItem key={cat} value={cat}>
-                  {cat.charAt(0).toUpperCase() + cat.slice(1).replace("-", " & ")}
+                  {formatCategoryLabel(cat)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -373,9 +349,9 @@ export function AdminTable({ recommendations, tags, categories }: AdminTableProp
                   >
                     <SelectTrigger className="h-7 text-xs">
                       <Badge
-                        className={`${categoryColors[rec.category] || categoryColors.articles} text-xs`}
+                        className={`${CATEGORY_COLORS[rec.category] || DEFAULT_CATEGORY_COLOR} text-xs`}
                       >
-                        {rec.category.replace("-", " & ")}
+                        {formatCategoryLabel(rec.category)}
                       </Badge>
                     </SelectTrigger>
                     <SelectContent>

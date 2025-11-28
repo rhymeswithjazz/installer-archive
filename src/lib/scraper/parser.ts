@@ -1,4 +1,5 @@
 import { SKIP_URL_PATTERNS, JUNK_TITLE_PATTERNS } from "./config";
+import { extractDomain as extractDomainUtil, decodeHtmlEntities } from "@/lib/utils/format";
 
 export interface ParsedRecommendation {
   title: string;
@@ -149,32 +150,13 @@ function isJunkTitle(title: string): boolean {
   return JUNK_TITLE_PATTERNS.some((pattern) => pattern.test(title.trim()));
 }
 
-function decodeHtmlEntities(text: string): string {
-  if (!text) return "";
-  return text
-    .replace(/&rsquo;/g, "'")
-    .replace(/&lsquo;/g, "'")
-    .replace(/&rdquo;/g, '"')
-    .replace(/&ldquo;/g, '"')
-    .replace(/&mdash;/g, "—")
-    .replace(/&ndash;/g, "–")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&#038;/g, "&")
-    .replace(/&eacute;/g, "é")
-    .replace(/&hellip;/g, "…")
-    .replace(/<[^>]+>/g, "");
-}
-
+/**
+ * Extract domain from URL, returning null for invalid URLs.
+ * Uses shared utility but returns null instead of empty string for parser compatibility.
+ */
 function extractDomain(url: string): string | null {
-  try {
-    const hostname = new URL(url).hostname;
-    return hostname.replace("www.", "");
-  } catch {
-    return null;
-  }
+  const domain = extractDomainUtil(url);
+  return domain || null;
 }
 
 export function guessCategory(

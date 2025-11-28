@@ -1,14 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ExternalLink, Calendar } from "lucide-react";
-
-// Format date without timezone issues
-function formatDate(date: Date | string | null): string {
-  if (!date) return "";
-  const d = typeof date === "string" ? new Date(date) : date;
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
-}
+import { CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR } from "@/lib/constants";
+import { formatDate, extractDomain, formatCategoryLabel } from "@/lib/utils/format";
 
 interface RecommendationCardProps {
   recommendation: {
@@ -33,30 +27,6 @@ interface RecommendationCardProps {
   };
 }
 
-const categoryColors: Record<string, string> = {
-  apps: "bg-green-500/15 text-green-500",
-  shows: "bg-pink-500/15 text-pink-500",
-  movies: "bg-amber-500/15 text-amber-500",
-  games: "bg-violet-500/15 text-violet-500",
-  books: "bg-cyan-500/15 text-cyan-500",
-  videos: "bg-red-500/15 text-red-500",
-  music: "bg-teal-500/15 text-teal-500",
-  podcasts: "bg-orange-500/15 text-orange-500",
-  articles: "bg-slate-500/15 text-slate-400",
-  gadgets: "bg-lime-500/15 text-lime-500",
-  "food-drink": "bg-pink-400/15 text-pink-400",
-  blog: "bg-indigo-500/15 text-indigo-500",
-  website: "bg-sky-500/15 text-sky-500",
-};
-
-function extractDomain(url: string): string {
-  try {
-    const hostname = new URL(url).hostname;
-    return hostname.replace("www.", "");
-  } catch {
-    return "";
-  }
-}
 
 export function RecommendationCard({ recommendation }: RecommendationCardProps) {
   const domain = recommendation.url ? extractDomain(recommendation.url) : "";
@@ -68,9 +38,9 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
         <div className="flex-shrink-0">
           <Badge
             variant="secondary"
-            className={`${categoryColors[recommendation.category] || categoryColors.articles} transition-transform group-hover:scale-105`}
+            className={`${CATEGORY_COLORS[recommendation.category] || DEFAULT_CATEGORY_COLOR} transition-transform group-hover:scale-105`}
           >
-            {recommendation.category.replace("-", " & ")}
+            {formatCategoryLabel(recommendation.category)}
           </Badge>
         </div>
 

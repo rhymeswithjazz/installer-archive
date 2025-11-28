@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useRef, useTransition } from "react";
+import { useCallback, useMemo, useRef, useTransition } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -12,13 +12,8 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Search, Loader2 } from "lucide-react";
-
-// Format YYYY-MM-DD string without timezone issues
-function formatDateString(dateStr: string): string {
-  const [year, month, day] = dateStr.split("-");
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${months[parseInt(month, 10) - 1]} ${parseInt(day, 10)}, ${year}`;
-}
+import { UI_TIMING } from "@/lib/constants";
+import { formatDateString, formatCategoryLabel } from "@/lib/utils/format";
 
 interface SearchFormProps {
   issues: {
@@ -82,16 +77,18 @@ export function SearchForm({
 
   // Get unique dates from issues, sorted newest to oldest
   // Note: Date objects from server become strings when passed to client components
-  const uniqueDates = [...new Set(
-    issues
-      .filter((issue) => issue.date)
-      .map((issue) => {
-        const date = issue.date!;
-        // Handle both Date objects and ISO strings
-        const isoString = typeof date === 'string' ? date : date.toISOString();
-        return isoString.split("T")[0];
-      })
-  )].sort((a, b) => b.localeCompare(a));
+  const uniqueDates = useMemo(() => {
+    return [...new Set(
+      issues
+        .filter((issue) => issue.date)
+        .map((issue) => {
+          const date = issue.date!;
+          // Handle both Date objects and ISO strings
+          const isoString = typeof date === 'string' ? date : date.toISOString();
+          return isoString.split("T")[0];
+        })
+    )].sort((a, b) => b.localeCompare(a));
+  }, [issues]);
 
   return (
     <div className="relative mb-6 p-3 md:p-4 rounded-xl md:rounded-2xl bg-card/30 border border-border/50 backdrop-blur-sm">
@@ -116,7 +113,7 @@ export function SearchForm({
             }
             searchTimeoutRef.current = setTimeout(() => {
               updateParams("q", value);
-            }, 400);
+            }, UI_TIMING.SEARCH_DEBOUNCE_MS);
           }}
           className="w-full pl-9 bg-background/50 border-border/50 focus:border-primary/50 transition-colors"
         />
@@ -138,7 +135,7 @@ export function SearchForm({
             <SelectItem value="all">All Categories</SelectItem>
             {categories.map((cat) => (
               <SelectItem key={cat} value={cat}>
-                {cat.charAt(0).toUpperCase() + cat.slice(1).replace("-", " & ")}
+                {formatCategoryLabel(cat)}
               </SelectItem>
             ))}
           </SelectContent>

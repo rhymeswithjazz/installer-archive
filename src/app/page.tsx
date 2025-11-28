@@ -4,8 +4,11 @@ import { SearchForm } from "@/components/search-form";
 import { RecommendationCard } from "@/components/recommendation-card";
 import { Pagination } from "@/components/admin/pagination";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { CATEGORIES } from "@/types";
+import { CATEGORIES, type RecommendationWithIssue } from "@/types";
 import { Sparkles, Newspaper, Archive } from "lucide-react";
+
+/** Type for recommendation list item */
+type RecommendationItem = Omit<RecommendationWithIssue, "hidden" | "dead" | "issueId">;
 
 const DEFAULT_PAGE_SIZE = 50;
 
@@ -131,7 +134,7 @@ export default async function HomePage({ searchParams }: PageProps) {
           </div>
         ) : (
           <div className="grid gap-3">
-            {recommendations.map((rec) => (
+            {(recommendations as RecommendationItem[]).map((rec) => (
               <RecommendationCard key={rec.id} recommendation={rec} />
             ))}
           </div>

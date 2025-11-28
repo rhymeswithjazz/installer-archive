@@ -577,9 +577,10 @@ export async function backfillTitles(options?: {
   }
 
   // Filter to prioritize short/vague titles if requested
-  let toProcess = recommendations;
+  type RecTitle = { id: number; title: string; url: string | null };
+  let toProcess = recommendations as RecTitle[];
   if (onlyShortTitles) {
-    toProcess = recommendations.filter((r) => {
+    toProcess = (recommendations as RecTitle[]).filter((r) => {
       const title = r.title.toLowerCase();
       // Prioritize short titles or common vague anchor text
       return (

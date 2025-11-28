@@ -6,6 +6,24 @@ import { revalidatePath } from "next/cache";
 import { chromium } from "playwright";
 import { extractPageTitle, guessCategory } from "@/lib/scraper/parser";
 import { categorizeAll, type CategorizeResult } from "@/lib/categorize";
+import { scraperConfig } from "@/lib/scraper/config";
+
+/**
+ * Local type for recommendation where clause.
+ * Using local type since Prisma client may not be fully generated in all environments.
+ */
+interface RecommendationWhereInput {
+  hidden?: boolean;
+  dead?: boolean;
+  category?: string;
+  issueId?: number;
+  tags?: { some: { name: string } };
+  OR?: Array<{
+    title?: { contains: string };
+    description?: { contains: string };
+    url?: { contains: string };
+  }>;
+}
 
 async function requireAuth() {
   const session = await auth();
@@ -203,14 +221,7 @@ export async function getAdminRecommendations(params: {
     offset = 0,
   } = params;
 
-  const where: {
-    hidden?: boolean;
-    dead?: boolean;
-    category?: string;
-    issueId?: number;
-    tags?: { some: { name: string } };
-    OR?: { title?: { contains: string }; description?: { contains: string }; url?: { contains: string } }[];
-  } = {};
+  const where: RecommendationWhereInput = {};
 
   if (!showHidden) {
     where.hidden = false;
@@ -300,7 +311,7 @@ export async function fetchTitleForRecommendation(
   try {
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({
-      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      userAgent: scraperConfig.userAgent,
     });
     const page = await context.newPage();
     page.setDefaultTimeout(15000);
@@ -364,7 +375,7 @@ export async function batchEnrichRecommendations(
   try {
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({
-      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      userAgent: scraperConfig.userAgent,
     });
 
     for (const rec of recommendations) {
@@ -460,7 +471,7 @@ export async function aiCategorizeRecommendations(
     select: { name: true },
     orderBy: { name: "asc" },
   });
-  const existingTagNames = allTags.map((t) => t.name);
+  const existingTagNames = allTags.map((t: { name: string }) => t.name);
 
   // Fetch recommendations with their current tags
   const recommendations = await prisma.recommendation.findMany({
@@ -479,9 +490,19 @@ export async function aiCategorizeRecommendations(
     return { results: [] };
   }
 
+  // Define type for recommendation from query
+  type RecWithTags = {
+    id: number;
+    url: string | null;
+    title: string;
+    description: string | null;
+    category: string;
+    tags: { id: number; name: string }[];
+  };
+
   // Call AI categorization with existing tags
   const aiResults = await categorizeAll(
-    recommendations.map((r) => ({
+    (recommendations as RecWithTags[]).map((r) => ({
       id: r.id,
       title: r.title,
       url: r.url,
@@ -499,8 +520,9 @@ export async function aiCategorizeRecommendations(
 
   // Update database and build response
   const results: AICategorizeResult[] = [];
+  const typedRecommendations = recommendations as RecWithTags[];
 
-  for (const rec of recommendations) {
+  for (const rec of typedRecommendations) {
     const aiResult = resultMap.get(rec.id);
 
     if (!aiResult) {

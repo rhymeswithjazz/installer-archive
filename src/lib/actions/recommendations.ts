@@ -1,7 +1,29 @@
 "use server";
 
-import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
+
+/**
+ * Local type for recommendation where clause.
+ * Using local type since Prisma client may not be fully generated in all environments.
+ */
+interface RecommendationWhereInput {
+  hidden?: boolean;
+  dead?: boolean;
+  category?: string;
+  issueId?: number;
+  tags?: { some: { name: string } };
+  issue?: {
+    date?: {
+      gte?: Date;
+      lte?: Date;
+    };
+  };
+  OR?: Array<{
+    title?: { contains: string };
+    description?: { contains: string };
+    url?: { contains: string };
+  }>;
+}
 
 export async function getRecommendations(params: {
   search?: string;
@@ -24,7 +46,7 @@ export async function getRecommendations(params: {
     offset = 0,
   } = params;
 
-  const where: Prisma.RecommendationWhereInput = {
+  const where: RecommendationWhereInput = {
     hidden: includeHidden ? undefined : false,
     dead: false,
   };
@@ -137,7 +159,7 @@ export async function getStats() {
     totalIssues,
     totalRecommendations,
     visibleRecommendations,
-    byCategory: byCategory.map((c) => ({
+    byCategory: byCategory.map((c: { category: string; _count: number }) => ({
       category: c.category,
       count: c._count,
     })),
