@@ -31,6 +31,18 @@ interface RecommendationCardProps {
 export function RecommendationCard({ recommendation }: RecommendationCardProps) {
   const domain = recommendation.url ? extractDomain(recommendation.url) : "";
 
+  const dateLink = (
+    <a
+      href={recommendation.issue.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="hover:text-primary transition-colors inline-flex items-center gap-1 text-xs text-muted-foreground"
+    >
+      <Calendar className="h-3 w-3" />
+      <span>{formatDate(recommendation.issue.date)}</span>
+    </a>
+  );
+
   return (
     <Card className="group hover:bg-accent/30 transition-all duration-200 border-border/50 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
       <CardContent className="flex gap-4 p-4">
@@ -46,22 +58,28 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
 
         {/* Content */}
         <div className="flex-1 min-w-0 space-y-2">
-          {/* Title */}
-          <h3 className="font-semibold text-base leading-tight">
-            {recommendation.url ? (
-              <a
-                href={recommendation.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-primary transition-colors inline-flex items-center gap-1.5 group/link"
-              >
-                <span>{recommendation.title}</span>
-                <ExternalLink className="h-3.5 w-3.5 opacity-0 group-hover/link:opacity-60 transition-opacity flex-shrink-0" />
-              </a>
-            ) : (
-              recommendation.title
-            )}
-          </h3>
+          {/* Title row with date on desktop */}
+          <div className="flex items-start justify-between gap-4">
+            <h3 className="font-semibold text-base leading-tight">
+              {recommendation.url ? (
+                <a
+                  href={recommendation.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors inline-flex items-center gap-1.5 group/link"
+                >
+                  <span>{recommendation.title}</span>
+                  <ExternalLink className="h-3.5 w-3.5 opacity-0 group-hover/link:opacity-60 transition-opacity flex-shrink-0" />
+                </a>
+              ) : (
+                recommendation.title
+              )}
+            </h3>
+            {/* Date - visible on md+ screens */}
+            <div className="hidden md:block flex-shrink-0">
+              {dateLink}
+            </div>
+          </div>
 
           {/* Tags */}
           {recommendation.tags.length > 0 && (
@@ -83,15 +101,10 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
             {domain && (
               <span className="text-muted-foreground/70 font-mono">{domain}</span>
             )}
-            <a
-              href={recommendation.issue.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-primary transition-colors inline-flex items-center gap-1"
-            >
-              <Calendar className="h-3 w-3" />
-              <span>{formatDate(recommendation.issue.date)}</span>
-            </a>
+            {/* Date - visible on mobile only */}
+            <div className="md:hidden">
+              {dateLink}
+            </div>
             {recommendation.contributorName && (
               <span className="text-purple-400/80">
                 via {recommendation.contributorName}
