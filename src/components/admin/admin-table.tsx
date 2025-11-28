@@ -4,7 +4,6 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -31,7 +30,10 @@ import {
   aiCategorizeRecommendations,
 } from "@/lib/actions/admin";
 import { EditRecommendationModal } from "./edit-recommendation-modal";
-import { ExternalLink, X, Eye, EyeOff, Skull, Pencil, Sparkles, AlertCircle, Loader2 } from "lucide-react";
+import { BulkActionsBar } from "./bulk-actions-bar";
+import { AdminToolbar } from "./admin-toolbar";
+import { TagInput, TagInputTrigger } from "./tag-input";
+import { ExternalLink, X, Eye, EyeOff, Skull, Pencil, AlertCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR } from "@/lib/constants";
 import { formatCategoryLabel } from "@/lib/utils/format";
@@ -62,7 +64,6 @@ interface AdminTableProps {
 export function AdminTable({ recommendations, tags, categories }: AdminTableProps) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [tagInput, setTagInput] = useState<number | null>(null);
-  const [tagValue, setTagValue] = useState("");
   const [isPending, startTransition] = useTransition();
   const [editingRec, setEditingRec] = useState<Recommendation | null>(null);
   const [failedIds, setFailedIds] = useState<Map<number, string>>(new Map());
@@ -119,22 +120,6 @@ export function AdminTable({ recommendations, tags, categories }: AdminTableProp
         await updateRecommendation(id, { dead: !currentDead });
       } catch (error) {
         toast.error("Failed to update dead status", {
-          description: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
-    });
-  };
-
-  const handleAddTag = (id: number) => {
-    if (!tagValue.trim()) return;
-
-    startTransition(async () => {
-      try {
-        await addTagToRecommendation(id, tagValue.trim());
-        setTagInput(null);
-        setTagValue("");
-      } catch (error) {
-        toast.error("Failed to add tag", {
           description: error instanceof Error ? error.message : "Unknown error",
         });
       }
@@ -280,12 +265,6 @@ export function AdminTable({ recommendations, tags, categories }: AdminTableProp
     }
   };
 
-  const filteredTagSuggestions = tags.filter(
-    (t) =>
-      t.name.toLowerCase().includes(tagValue.toLowerCase()) &&
-      !recommendations.find((r) => r.id === tagInput)?.tags.some((rt) => rt.id === t.id)
-  );
-
   return (
     <div className="space-y-4">
       {/* Edit Modal */}
@@ -298,86 +277,23 @@ export function AdminTable({ recommendations, tags, categories }: AdminTableProp
       />
 
       {/* Bulk Actions */}
-      {selected.size > 0 && (
-        <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
-          <span className="text-sm font-medium">{selected.size} selected</span>
-          <Select onValueChange={handleBulkCategory}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Set category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((cat) => (
-                <SelectItem key={cat} value={cat}>
-                  {formatCategoryLabel(cat)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleBulkHide(true)}
-          >
-            <EyeOff className="h-4 w-4 mr-1" />
-            Hide
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleBulkHide(false)}
-          >
-            <Eye className="h-4 w-4 mr-1" />
-            Show
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelected(new Set())}
-          >
-            Clear selection
-          </Button>
-        </div>
-      )}
+      <BulkActionsBar
+        selectedCount={selected.size}
+        categories={categories}
+        onBulkCategory={handleBulkCategory}
+        onBulkHide={handleBulkHide}
+        onClearSelection={() => setSelected(new Set())}
+      />
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          {recommendations.length} items
-          {failedIds.size > 0 && (
-            <span className="ml-2 text-red-500">
-              ({failedIds.size} failed)
-            </span>
-          )}
-          {aiResults.size > 0 && (
-            <span className="ml-2 text-green-500">
-              ({aiResults.size} processed
-              {(() => {
-                const totalTags = Array.from(aiResults.values()).reduce((sum, r) => sum + r.addedTags.length, 0);
-                return totalTags > 0 ? `, +${totalTags} tags` : "";
-              })()})
-            </span>
-          )}
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleAIEnrich}
-          disabled={enrichStatus !== "idle" || recommendations.length === 0}
-        >
-          {enrichStatus !== "idle" ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4 mr-2" />
-          )}
-          {enrichStatus === "fetching"
-            ? "Fetching titles..."
-            : enrichStatus === "categorizing"
-              ? "AI categorizing..."
-              : selected.size > 0
-                ? `AI Update (${selected.size})`
-                : "AI Update All"}
-        </Button>
-      </div>
+      <AdminToolbar
+        itemCount={recommendations.length}
+        selectedCount={selected.size}
+        failedCount={failedIds.size}
+        aiResults={aiResults}
+        enrichStatus={enrichStatus}
+        onAIEnrich={handleAIEnrich}
+      />
 
       {/* Table */}
       <div className="rounded-md border">
@@ -506,47 +422,24 @@ export function AdminTable({ recommendations, tags, categories }: AdminTableProp
                     ))}
 
                     {tagInput === rec.id ? (
-                      <div className="relative">
-                        <Input
-                          value={tagValue}
-                          onChange={(e) => setTagValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleAddTag(rec.id);
-                            if (e.key === "Escape") {
-                              setTagInput(null);
-                              setTagValue("");
+                      <TagInput
+                        allTags={tags}
+                        currentTagIds={rec.tags.map((t) => t.id)}
+                        onAddTag={(tagName) => {
+                          startTransition(async () => {
+                            try {
+                              await addTagToRecommendation(rec.id, tagName);
+                            } catch (error) {
+                              toast.error("Failed to add tag", {
+                                description: error instanceof Error ? error.message : "Unknown error",
+                              });
                             }
-                          }}
-                          className="h-6 w-24 text-xs"
-                          placeholder="Add tag"
-                          autoFocus
-                        />
-                        {tagValue && filteredTagSuggestions.length > 0 && (
-                          <div className="absolute top-full left-0 mt-1 w-32 bg-popover border rounded-md shadow-md z-10">
-                            {filteredTagSuggestions.slice(0, 5).map((tag) => (
-                              <div
-                                key={tag.id}
-                                className="px-2 py-1 text-xs cursor-pointer hover:bg-muted"
-                                onClick={() => {
-                                  setTagValue(tag.name);
-                                  handleAddTag(rec.id);
-                                }}
-                              >
-                                {tag.name}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                          });
+                        }}
+                        onClose={() => setTagInput(null)}
+                      />
                     ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 text-xs"
-                        onClick={() => setTagInput(rec.id)}
-                      >
-                        +
-                      </Button>
+                      <TagInputTrigger onClick={() => setTagInput(rec.id)} />
                     )}
                   </div>
                 </TableCell>
