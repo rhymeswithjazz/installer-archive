@@ -81,9 +81,8 @@ RUN npm install bcryptjs --omit=dev
 # Install Playwright browsers (chromium only) as root
 RUN npx playwright install chromium --with-deps
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+# Copy entrypoint script and ensure it's executable
+COPY --chmod=755 docker-entrypoint.sh /docker-entrypoint.sh
 
 USER nextjs
 

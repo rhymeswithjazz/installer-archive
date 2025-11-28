@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  installer-archive:
+    image: rhymeswithjazz/installer-archive:latest
+    container_name: installer-archive
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:/app/data/installer.db
+      - AUTH_SECRET=${AUTH_SECRET}
+      - AUTH_URL=${AUTH_URL}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+    volumes:
+      # Map your database file directly - adjust the host path as needed
+      # Example: /volume1/docker/installer-archive/installer.db:/app/data/installer.db
+      - ${DB_PATH}:/app/data/installer.db
+    restart: unless-stopped
