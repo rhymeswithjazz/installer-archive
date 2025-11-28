@@ -1,14 +1,19 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import Email from "next-auth/providers/nodemailer";
+import Nodemailer from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import prisma from "./prisma";
+import { authConfig } from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma),
+  session: {
+    strategy: "database",
+  },
   providers: [
-    Email({
+    Nodemailer({
       server: {
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT) || 587,
@@ -55,31 +60,4 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
-  pages: {
-    signIn: "/login",
-    verifyRequest: "/login/verify",
-  },
-  callbacks: {
-    async session({ session, token, user }) {
-      // For JWT strategy (credentials), use token
-      if (token?.sub && session.user) {
-        session.user.id = token.sub;
-      }
-      // For database strategy (email), use user
-      if (user?.id && session.user) {
-        session.user.id = user.id;
-      }
-      return session;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id;
-      }
-      return token;
-    },
-  },
-  session: {
-    // Use database sessions for email provider, JWT for credentials
-    strategy: "database",
-  },
 });
