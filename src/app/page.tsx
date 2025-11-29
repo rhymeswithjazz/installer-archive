@@ -5,7 +5,9 @@ import { RecommendationCard } from "@/components/recommendation-card";
 import { Pagination } from "@/components/admin/pagination";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CATEGORIES, type RecommendationWithIssue } from "@/types";
-import { Sparkles, Newspaper, Archive } from "lucide-react";
+import { Sparkles, Newspaper } from "lucide-react";
+import Image from "next/image";
+import iconSvg from "./icon.svg";
 
 /** Type for recommendation list item */
 type RecommendationItem = Omit<RecommendationWithIssue, "hidden" | "dead" | "issueId">;
@@ -62,8 +64,8 @@ export default async function HomePage({ searchParams }: PageProps) {
         <div className="container mx-auto px-4">
           <div className="text-center space-y-2 md:space-y-4">
             <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3">
-              <div className="p-2.5 md:p-3 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/20">
-                <Archive className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+              <div className="p-2 md:p-2.5 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/20">
+                <Image src={iconSvg} alt="Installer Archive" className="h-7 w-7 md:h-9 md:w-9" />
               </div>
               <h1 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-primary via-purple-400 to-pink-400 bg-clip-text text-transparent">
                 Installer Archive
@@ -127,7 +129,7 @@ export default async function HomePage({ searchParams }: PageProps) {
         {recommendations.length === 0 ? (
           <div className="text-center py-20">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/50 mb-4">
-              <Archive className="h-8 w-8 text-muted-foreground" />
+              <Image src={iconSvg} alt="" className="h-8 w-8 opacity-50" />
             </div>
             <p className="text-lg text-muted-foreground">No recommendations found</p>
             <p className="text-sm text-muted-foreground/60 mt-1">Try adjusting your search or filters</p>
