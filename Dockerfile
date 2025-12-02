@@ -58,6 +58,7 @@ RUN apt-get update && apt-get install -y \
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs
@@ -80,8 +81,9 @@ RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data
 # Install bcryptjs for password hashing in seed script
 RUN npm install bcryptjs --omit=dev
 
-# Install Playwright browsers (chromium only) as root
-RUN npx playwright install chromium --with-deps
+# Install Playwright browsers to shared location accessible by nextjs user
+RUN npx playwright install chromium && \
+    chmod -R 755 /ms-playwright
 
 # Copy entrypoint script and ensure it's executable
 COPY --chmod=755 docker-entrypoint.sh /docker-entrypoint.sh
